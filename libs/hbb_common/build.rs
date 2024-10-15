@@ -7,9 +7,4 @@ fn main() {
         .input("protos/message.proto")
         .out_dir("src/protos")
         .run_from_script();
-        // .out_dir("src/protos")
-        // .inputs(&["protos/rendezvous.proto", "protos/message.proto"])
-        // .include("protos")
-        // .run()
-        // .expect("Codegen failed.");
 }
