@@ -7,13 +7,16 @@ use hbb_common::{
     udp::FramedSocket,
 };
 
-#[tokio::main(basic_scheduler)]
+#[tokio::main()]
 async fn main() {
     let mut socket = FramedSocket::new("0.0.0.0:21116").await.unwrap();
     let mut listener = new_listener("0.0.0.0:21116", false).await.unwrap();
     let mut rlistener = new_listener("0.0.0.0:21117", false).await.unwrap();
     let mut id_map = std::collections::HashMap::new();
-    let relay_server = std::env::var("IP").unwrap();
+    let relay_server = match std::env::var("IP") {
+        Ok(r) => { r }
+        Err(e) => { "".to_string() }
+    };
     let mut saved_stream = None;
     loop {
         tokio::select! {
@@ -25,7 +28,7 @@ async fn main() {
                 if let Some(Ok(bytes)) = stream.next_timeout(3000).await {
                     if let Ok(msg_in) = RendezvousMessage::parse_from_bytes(&bytes) {
                         match msg_in.union {
-                            Some(rendezvous_message::Union::punch_hole_request(ph)) => {
+                            Some(rendezvous_message::Union::PunchHoleRequest(ph)) => {
                                 println!("punch_hole_request {:?}", addr);
                                 if let Some(addr) = id_map.get(&ph.id) {
                                     let mut msg_out = RendezvousMessage::new();
@@ -37,7 +40,7 @@ async fn main() {
                                     saved_stream = Some(stream);
                                 }
                             }
-                            Some(rendezvous_message::Union::relay_response(_)) => {
+                            Some(rendezvous_message::Union::RelayResponse(_)) => {
                                 println!("relay_response {:?}", addr);
                                 let mut msg_out = RendezvousMessage::new();
                                 msg_out.set_relay_response(RelayResponse {
@@ -107,14 +110,14 @@ async fn handle_udp(
 ) {
     if let Ok(msg_in) = RendezvousMessage::parse_from_bytes(&bytes) {
         match msg_in.union {
-            Some(rendezvous_message::Union::register_peer(rp)) => {
+            Some(rendezvous_message::Union::RegisterPeer(rp)) => {
                 println!("register_peer {:?}", addr);
                 id_map.insert(rp.id, addr);
                 let mut msg_out = RendezvousMessage::new();
                 msg_out.set_register_peer_response(RegisterPeerResponse::new());
                 socket.send(&msg_out, addr).await.ok();
             }
-            Some(rendezvous_message::Union::register_pk(_)) => {
+            Some(rendezvous_message::Union::RegisterPk(_)) => {
                 println!("register_pk {:?}", addr);
                 let mut msg_out = RendezvousMessage::new();
                 msg_out.set_register_pk_response(RegisterPkResponse {

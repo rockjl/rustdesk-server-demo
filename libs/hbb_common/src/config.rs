@@ -547,7 +547,7 @@ impl Config {
         // to-do: how about if one ip register a lot of ids?
         let id = Self::get_id();
         let mut rng = rand::thread_rng();
-        let new_id = rng.gen_range(1_000_000_000, 2_000_000_000).to_string();
+        let new_id = rng.gen_range(1_000_000_000..2_000_000_000).to_string();
         Config::set_id(&new_id);
         log::info!("id updated from {} to {}", id, new_id);
     }
@@ -620,7 +620,7 @@ const PEERS: &str = "peers";
 
 impl PeerConfig {
     pub fn load(id: &str) -> PeerConfig {
-        let _ = CONFIG.read().unwrap(); // for lock
+        let read_lock = CONFIG.read().unwrap(); // for lock
         match confy::load_path(&Self::path(id)) {
             Ok(config) => config,
             Err(err) => {
@@ -631,7 +631,7 @@ impl PeerConfig {
     }
 
     pub fn store(&self, id: &str) {
-        let _ = CONFIG.read().unwrap(); // for lock
+        let read_lock = CONFIG.read().unwrap(); // for lock
         if let Err(err) = confy::store_path(Self::path(id), self) {
             log::error!("Failed to store config: {}", err);
         }

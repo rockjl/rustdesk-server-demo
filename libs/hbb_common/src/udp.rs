@@ -1,13 +1,13 @@
 use crate::{bail, ResultType};
 use bytes::BytesMut;
-use futures::SinkExt;
+use futures::{SinkExt, StreamExt};
 use protobuf::Message;
 use std::{
     io::Error,
     net::SocketAddr,
     ops::{Deref, DerefMut},
 };
-use tokio::{net::ToSocketAddrs, net::UdpSocket, stream::StreamExt};
+use tokio::net::{ToSocketAddrs, UdpSocket, lookup_host};
 use tokio_util::{codec::BytesCodec, udp::UdpFramed};
 
 pub struct FramedSocket(UdpFramed<BytesCodec>);
@@ -34,9 +34,9 @@ impl FramedSocket {
 
     #[allow(clippy::never_loop)]
     pub async fn new_reuse<T: ToSocketAddrs>(addr: T) -> ResultType<Self> {
-        for addr in addr.to_socket_addrs().await? {
+        for addr in lookup_host(addr).await? {
             return Ok(Self(UdpFramed::new(
-                UdpSocket::from_std(super::new_socket(addr, false, true)?.into_udp_socket())?,
+                UdpSocket::from_std(super::new_socket(addr, false, true)?.into())?,
                 BytesCodec::new(),
             )));
         }

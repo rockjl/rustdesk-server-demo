@@ -36,7 +36,7 @@ pub type Stream = tcp::FramedStream;
 
 #[inline]
 pub async fn sleep(sec: f32) {
-    tokio::time::delay_for(time::Duration::from_secs_f32(sec)).await;
+    tokio::time::sleep(time::Duration::from_secs_f32(sec)).await;
 }
 
 #[macro_export]
@@ -64,14 +64,14 @@ pub fn timeout<T: std::future::Future>(ms: u64, future: T) -> tokio::time::Timeo
 fn new_socket(addr: SocketAddr, tcp: bool, reuse: bool) -> Result<Socket, std::io::Error> {
     let stype = {
         if tcp {
-            Type::stream()
+            Type::STREAM
         } else {
-            Type::dgram()
+            Type::DGRAM
         }
     };
     let socket = match addr {
-        SocketAddr::V4(..) => Socket::new(Domain::ipv4(), stype, None),
-        SocketAddr::V6(..) => Socket::new(Domain::ipv6(), stype, None),
+        SocketAddr::V4(..) => Socket::new(Domain::IPV4, stype, None),
+        SocketAddr::V6(..) => Socket::new(Domain::IPV6, stype, None),
     }?;
     if reuse {
         // windows has no reuse_port, but it's reuse_address

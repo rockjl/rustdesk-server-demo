@@ -50,8 +50,8 @@ message RegisterPk {
 
 message RegisterPkResponse {
   enum Result {
-    OK = 1;
-    UUID_MISMATCH = 2;
+    OK = 0;
+    UUID_MISMATCH = 1;
   }
   Result result = 1;
 }
@@ -60,8 +60,8 @@ message PunchHoleResponse {
   bytes socket_addr = 1;
   bytes pk = 2;
   enum Failure {
-    ID_NOT_EXIST = 1;
-    OFFLINE = 2;
+    ID_NOT_EXIST = 0;
+    OFFLINE = 1;
   }
   Failure failure = 3;
   string relay_server = 4;

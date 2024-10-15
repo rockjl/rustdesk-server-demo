@@ -83,7 +83,7 @@ message MouseEvent {
 }
 
 enum ControlKey {
-  Alt = 1;
+  Alt = 0;
   Backspace = 2;
   CapsLock = 3;
   Control = 4;
@@ -201,7 +201,7 @@ message Clipboard {
 };
 
 enum FileType {
-  Dir = 1;
+  Dir = 0;
   DirLink = 2;
   DirDrive = 3;
   File = 4;
@@ -313,8 +313,8 @@ message SwitchDisplay {
 }
 
 enum Permission {
-  Keyboard = 1;
-  Clipboard = 2;
+  Keyboard = 0;
+  _Clipboard = 2;
   Audio = 3;
 }
 
@@ -325,13 +325,13 @@ message PermissionInfo {
 
 enum ImageQuality {
   NotSet = 0;
-  Low = 2;
-  Balanced = 3;
-  Best = 4;
+  Low = 1;
+  Balanced = 2;
+  Best = 3;
 }
 
 enum BoolOption {
-  NotSet = 0;
+  _NotSet = 0;
   No = 1;
   Yes = 2;
 }
