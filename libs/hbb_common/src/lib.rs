@@ -1,16 +1,19 @@
+pub mod password_security;
+pub mod handle_request;
 pub mod compress;
 #[path = "./protos/message.rs"]
 pub mod message_proto;
 #[path = "./protos/rendezvous.rs"]
 pub mod rendezvous_proto;
 pub use bytes;
+use config::Config;
 pub use futures;
 pub use protobuf;
 use socket2::{Domain, Socket, Type};
 use std::{
     fs::File,
     io::{self, BufRead},
-    net::{Ipv4Addr, SocketAddr, SocketAddrV4, ToSocketAddrs},
+    net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4, ToSocketAddrs},
     path::Path,
     time::{self, SystemTime, UNIX_EPOCH},
 };
@@ -28,6 +31,9 @@ pub use futures_util;
 pub mod config;
 pub mod fs;
 pub use sodiumoxide;
+pub use tokio_socks;
+pub use tokio_socks::IntoTargetAddr;
+pub use tokio_socks::TargetAddr;
 
 #[cfg(feature = "quic")]
 pub type Stream = quic::Connection;
@@ -59,6 +65,38 @@ macro_rules! allow_err {
 #[inline]
 pub fn timeout<T: std::future::Future>(ms: u64, future: T) -> tokio::time::Timeout<T> {
     tokio::time::timeout(std::time::Duration::from_millis(ms), future)
+}
+
+pub fn get_modified_time(path: &std::path::Path) -> SystemTime {
+    std::fs::metadata(path)
+        .map(|m| m.modified().unwrap_or(UNIX_EPOCH))
+        .unwrap_or(UNIX_EPOCH)
+}
+
+pub fn get_created_time(path: &std::path::Path) -> SystemTime {
+    std::fs::metadata(path)
+        .map(|m| m.created().unwrap_or(UNIX_EPOCH))
+        .unwrap_or(UNIX_EPOCH)
+}
+
+pub fn get_exe_time() -> SystemTime {
+    std::env::current_exe().map_or(UNIX_EPOCH, |path| {
+        let m = get_modified_time(&path);
+        let c = get_created_time(&path);
+        if m > c {
+            m
+        } else {
+            c
+        }
+    })
+}
+
+pub fn get_uuid() -> Vec<u8> {
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    if let Ok(id) = machine_uid::get() {
+        return id.into();
+    }
+    Config::get_key_pair().1
 }
 
 fn new_socket(addr: SocketAddr, tcp: bool, reuse: bool) -> Result<Socket, std::io::Error> {
