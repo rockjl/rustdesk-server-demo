@@ -1,20 +1,10 @@
-use chrono::{Datelike, Timelike};
 use flexi_logger::*;
 use hbb_common::{
-    bail, bytes::BytesMut, config::{RENDEZVOUS_PORT, RMEM}, futures::FutureExt, protobuf::Message as _, rendezvous_proto::*, tcp::{new_listener, FramedStream}, tokio, udp::FramedSocket, ResultType
+    bail, bytes::BytesMut, chrono::TimeZone, config::{RENDEZVOUS_PORT, RMEM}, futures::FutureExt, protobuf::Message as _, rendezvous_proto::*, tcp::{new_listener, FramedStream}, tokio, udp::FramedSocket, ResultType
 };
 use rustdesk_server::{common::{get_arg, get_arg_or, init_args}, server::Server};
 
 fn main() -> ResultType<()> {
-
-    // let instant = rustdesk_server::datatime_util::naive_datetime_to_instant(naive_datetime);
-    let dt = rustdesk_server::datatime_util::instant_to_naive_datetime(std::time::Instant::now());
-
-    println!("当前时间戳：{}", dt);
-    println!("北京时间：{:?}年{:?}月{:?}日{:?}时{:?}分{:?}秒", dt.year(), dt.month(), dt.day(), dt.hour(), dt.minute(), dt.second());
-
-    let f = async {};
-    let f = f.boxed();
 
 
     let _logger = Logger::try_with_env_or_str("info")?

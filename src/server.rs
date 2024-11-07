@@ -24,9 +24,10 @@ use ipnetwork::Ipv4Network;
 use sodiumoxide::crypto::sign;
 
 use crate::common::{get_arg, get_arg_or, get_servers, listen_signal};
+use crate::datatime_util::*;
 use crate::{peer::*, try_into_v4};
 
-const REG_TIMEOUT: i32 = 30_000;
+const REG_TIMEOUT: i64 = 30_000;
 type TcpStreamSink = SplitSink<Framed<TcpStream, BytesCodec>, Bytes>;
 
 #[derive(Clone, Debug)]
@@ -427,7 +428,8 @@ impl Server {
         let mut states = BytesMut::zeroed((peers.len() + 7) / 8);
         for (i, peer_id) in peers.iter().enumerate() {
             if let Some(peer) = self.pm.get_in_memory(peer_id).await {
-                let elapsed = peer.read().await.last_reg_time.elapsed().as_millis() as i32;
+                let elapsed = now_timestamp() - peer.read().await.last_reg_time;
+                let elapsed = elapsed.nanos_to_millis();
                 // bytes index from left to right
                 let states_idx = i / 8;
                 let bit_idx = 7 - i % 8;
@@ -590,7 +592,7 @@ impl Server {
         ph: PunchHoleRequest,
         key: &str,
     ) -> ResultType<(RendezvousMessage, Option<SocketAddr>)> {
-        log::info!("addr:{:#?} ph:{:#?} key:{:#?} ", addr, ph, key);
+        log::info!("addr:{:#?} ph:{:?} key:{:#?} ", addr, ph, key);
         let mut ph = ph;
         if !key.is_empty() && ph.licence_key != key {
             let mut msg_out = RendezvousMessage::new();
@@ -609,7 +611,8 @@ impl Server {
         if let Some(peer) = self.pm.get(&id).await {
             let (elapsed, peer_addr) = {
                 let r = peer.read().await;
-                (r.last_reg_time.elapsed().as_millis() as i32, r.socket_addr)
+                let elapsed = now_timestamp() - r.last_reg_time;
+                (elapsed.nanos_to_millis(), r.socket_addr)
             };
             if elapsed >= REG_TIMEOUT {
                 let mut msg_out = RendezvousMessage::new();
@@ -755,6 +758,7 @@ impl Server {
                     req_pk.0 += 1;
                     req_pk.1 = Instant::now().into();
                     peer.write().await.reg_pk = req_pk;
+                    peer.write().await.socket_addr = addr;
                     if ip_changed {
                         let mut lock = IP_CHANGES.lock().await;
                         if let Some((tm, ips)) = lock.get_mut(&id) {
@@ -1001,6 +1005,9 @@ impl Server {
         socket_addr: SocketAddr,
         socket: &mut FramedSocket,
     ) -> ResultType<()> {
+        if !id.contains("test_hbbs") {
+            log::info!("update_addr::id:{:?} socket_addr:{:?}", id, socket_addr);
+        }
         let (request_pk, ip_change) = if let Some(old) = self.pm.get_in_memory(&id).await {
             let mut old = old.write().await;
             let ip = socket_addr.ip();
@@ -1012,7 +1019,7 @@ impl Server {
             let request_pk = old.pk.is_empty() || is_ip_change;
             if !request_pk {
                 old.socket_addr = socket_addr;
-                old.last_reg_time = Instant::now().into();
+                old.last_reg_time = now_timestamp();
                 self.pm.insert_update_last_reg_time_task(old.guid.clone()).await?;
             }
             let ip_change = if is_ip_change && old.reg_pk.0 <= 2 {

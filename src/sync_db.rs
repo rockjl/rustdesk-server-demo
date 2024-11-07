@@ -40,7 +40,10 @@ impl CycleTaskDb {
     pub(crate) async fn update_expire(&self) {
         self.inner.write().await.expire = std::time::Instant::now();
     }
-    pub(crate) async fn cycle(&self) -> hbb_common::ResultType<()> {
+}
+
+impl CycleLoop for CycleTaskDb {
+    async fn cycle(&self) -> hbb_common::ResultType<()> {
         loop {
             hbb_common::tokio::time::sleep(std::time::Duration::from_millis(hbb_common::config::SYNC_MEM_DB_CHECK_CYCLE)).await;
             let mut inner = self.inner.write().await;

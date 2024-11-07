@@ -32,7 +32,7 @@ pub(crate) struct PeerInfo {
 #[derive(Debug)]
 pub(crate) struct Peer {
     pub(crate) socket_addr: SocketAddr,
-    pub(crate) last_reg_time: Instant,
+    pub(crate) last_reg_time: i64,
     pub(crate) guid: Vec<u8>,
     pub(crate) uuid: Vec<u8>,
     pub(crate) pk: Vec<u8>,
@@ -46,7 +46,7 @@ impl Default for Peer {
     fn default() -> Self {
         Self {
             socket_addr: "0.0.0.0:0".parse().unwrap(),
-            last_reg_time: get_expired_time(),
+            last_reg_time: crate::datatime_util::now_timestamp(),
             guid: Vec::new(),
             uuid: Vec::new(),
             pk: Vec::new(),
@@ -111,7 +111,7 @@ impl PeerMap {
             w.socket_addr = addr;
             w.uuid = uuid.clone();
             w.pk = pk.clone();
-            w.last_reg_time = Instant::now();
+            w.last_reg_time = crate::datatime_util::now_timestamp();
             w.info.ip = ip;
             (
                 serde_json::to_string(&w.info).unwrap_or_default(),
@@ -120,7 +120,7 @@ impl PeerMap {
         };
         self.sync_db_cycle.update_expire().await;
         if guid.is_empty() {
-            match self.db.insert_peer(&id, chrono::Local::now().naive_local(), &uuid, &pk, &info_str).await {
+            match self.db.insert_peer(&id, hbb_common::chrono::Local::now().naive_local(), &uuid, &pk, &info_str).await {
                 Err(err) => {
                     log::error!("db.insert_peer failed: {}", err);
                     return register_pk_response::Result::SERVER_ERROR;
@@ -130,7 +130,7 @@ impl PeerMap {
                 }
             }
         } else {
-            if let Err(err) = self.db.update_pk(&guid, &id, chrono::Local::now().naive_local(), &pk, &info_str).await {
+            if let Err(err) = self.db.update_pk(&guid, &id, hbb_common::chrono::Local::now().naive_local(), &pk, &info_str).await {
                 log::error!("db.update_pk failed: {}", err);
                 return register_pk_response::Result::SERVER_ERROR;
             }
@@ -179,7 +179,7 @@ impl PeerMap {
         #[allow(unused_must_use)]
         self.insert_sync_task(Box::pin(async move {
             for (_id, guid, last_reg_time, _socket_addr) in vl {
-                match db.sync_mem_to_db(guid.clone(), crate::datatime_util::instant_to_naive_datetime(last_reg_time)).await {
+                match db.sync_mem_to_db(guid.clone(), crate::datatime_util::timestamp_to_naivedatetime(last_reg_time)).await {
                     Ok(_) => {
                         // log::info!("SUCCESS: sync_mem_to_db::update_last_reg_time> guid: {:?}", guid);
                     }

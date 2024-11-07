@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
 use hbb_common::{log, ResultType};
 use sqlx::{
     sqlite::SqliteConnectOptions, ConnectOptions, Connection, Error as SqlxError, SqliteConnection,
@@ -51,7 +50,7 @@ pub struct Database {
 pub struct DbPeer {
     pub guid: Vec<u8>,
     pub id: String,
-    pub last_reg_time: NaiveDateTime,
+    pub last_reg_time: hbb_common::chrono::NaiveDateTime,
     pub uuid: Vec<u8>,
     pub pk: Vec<u8>,
     pub user: Option<Vec<u8>>,
@@ -140,7 +139,7 @@ impl Database {
     pub async fn insert_peer(
         &self,
         id: &str,
-        last_reg_time: NaiveDateTime,
+        last_reg_time: hbb_common::chrono::NaiveDateTime,
         uuid: &[u8],
         pk: &[u8],
         info: &str,
@@ -164,7 +163,7 @@ impl Database {
         &self,
         guid: Vec<u8>,
     ) -> ResultType<()> {
-        let naive_datetime = chrono::Local::now().naive_local();
+        let naive_datetime = hbb_common::chrono::Local::now().naive_local();
         sqlx::query!(
             "update peer set last_reg_time=? where guid=?",
             naive_datetime,
@@ -178,7 +177,7 @@ impl Database {
     pub async fn sync_mem_to_db(
         &self,
         guid: Vec<u8>,
-        last_reg_time: NaiveDateTime,
+        last_reg_time: hbb_common::chrono::NaiveDateTime,
     ) -> ResultType<()> {
         sqlx::query!(
             "update peer set last_reg_time=? where guid=?",
@@ -194,7 +193,7 @@ impl Database {
         &self,
         guid: &Vec<u8>,
         id: &str,
-        last_reg_time: NaiveDateTime,
+        last_reg_time: hbb_common::chrono::NaiveDateTime,
         pk: &[u8],
         info: &str,
     ) -> ResultType<()> {
